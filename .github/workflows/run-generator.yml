@@ -64,7 +64,5 @@ jobs:
         if: env.SYSTEM_MODE == 'LIVE'
         run: |
           echo "Starting secure push to ${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}"
-          
-          # التصحيح: تم إزالة أمر 'cd ..'
-          # الدفع يتم مباشرة باستخدام URL المستودع و PAT لتجاوز "not a git repository"
-git push -f https://${{ github.actor }}:${{ secrets.PUBLISH_PAT }}@github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
+          # يجب أن يبدأ أمر git push في نفس العمود بعد المسافة البيضاء الخاصة بـ 'run: |'
+          git push -f https://${{ github.actor }}:${{ secrets.PUBLISH_PAT }}@github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
