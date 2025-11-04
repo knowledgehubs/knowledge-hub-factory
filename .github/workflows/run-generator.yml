@@ -65,9 +65,6 @@ jobs:
         run: |
           echo "Starting secure push to ${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}"
           
-          # Move to the repository root
-          cd .. 
-          
-          # Push the committed changes using the PAT to the Publisher's 'main' branch
-          # The generator has already committed the changes.
+          # التصحيح: تم إزالة أمر 'cd ..'
+          # الدفع يتم مباشرة باستخدام URL المستودع و PAT لتجاوز "not a git repository"
           git push https://${{ github.actor }}:${{ secrets.PUBLISH_PAT }}@github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
