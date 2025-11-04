@@ -60,9 +60,16 @@ jobs:
         if: env.SYSTEM_MODE == 'TEST'
         run: echo "SYSTEM_MODE is TEST. Skipping secure Git Push to Publisher."
         
+      - name: 🧹 Clean Git Cache
+        if: env.SYSTEM_MODE == 'LIVE'
+        run: |
+          # هذه الخطوة تزيل أي ملفات Git تالفة من التشغيل السابق
+          rm -rf .git/objects/pack
+          rm -rf .git/refs/remotes/origin
+
       - name: 📤 Secure Push Generated Content (LIVE Mode Only)
         if: env.SYSTEM_MODE == 'LIVE'
         run: |
           echo "Starting secure push to ${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}"
-          # يجب أن يبدأ أمر git push في نفس العمود بعد المسافة البيضاء الخاصة بـ 'run: |'
+          # نستخدم -f و HEAD:main للدفع القسري لتوحيد أساس الفرعين
           git push -f https://${{ github.actor }}:${{ secrets.PUBLISH_PAT }}@github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
