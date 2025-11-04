@@ -5,11 +5,12 @@ on:
     # Schedule the job to run once daily (00:00 UTC)
     - cron: '0 0 * * *' 
   workflow_dispatch:
+    # Allows manual trigger from the GitHub Actions UI
     inputs:
       mode:
         description: 'SYSTEM_MODE: LIVE or TEST'
         required: true
-        default: 'TEST' 
+        default: 'TEST' # Default is set to TEST for safety
         type: choice
         options:
           - LIVE
@@ -19,9 +20,10 @@ jobs:
   generate_and_publish:
     runs-on: ubuntu-latest
     
+    # Environment variables are crucial for the script
     env:
       SYSTEM_MODE: ${{ github.event.inputs.mode || 'LIVE' }} 
-      PUBLISHER_REPO_OWNER: ${{ github.repository_owner }} 
+      PUBLISHER_REPO_OWNER: ${{ github.repository_owner }} # Owner of the knowledge-hub repo
       PUBLISHER_REPO_NAME: knowledge-hub
       
     steps:
@@ -38,10 +40,12 @@ jobs:
 
       - name: ⚙️ Set Git User for Commit
         run: |
+          # Identity used for the commit in the Factory repo
           git config --global user.email "knowledgehub-bot@users.noreply.github.com"
           git config --global user.name "Knowledge Hub Automation Bot"
 
       - name: 📦 Setup Publisher Structure (Crucial for generator.py path)
+        # Create the relative path where generator.py expects to write files
         run: |
           mkdir -p ../${{ env.PUBLISHER_REPO_NAME }}/content/posts/
           
@@ -60,6 +64,8 @@ jobs:
         run: |
           echo "Starting secure push to ${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}"
           
-          # توجيه الدفع إلى المستودع الهدف باستخدام بروتوكول SSH/Git
-          # نعتمد على بيانات الاعتماد المحفوظة من خطوة Checkout
-          git push -f https://github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
+          # استراتيجية جديدة: تعيين الـ Origin المؤقت إلى المستودع الناشر
+          git remote set-url origin https://${{ github.actor }}:${{ secrets.PUBLISH_PAT }}@github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git
+          
+          # الدفع القسري لـ HEAD إلى الفرع الرئيسي للمستودع الناشر
+          git push -u origin main -f
