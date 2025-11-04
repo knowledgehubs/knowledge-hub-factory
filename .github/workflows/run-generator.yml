@@ -5,12 +5,11 @@ on:
     # Schedule the job to run once daily (00:00 UTC)
     - cron: '0 0 * * *' 
   workflow_dispatch:
-    # Allows manual trigger from the GitHub Actions UI
     inputs:
       mode:
         description: 'SYSTEM_MODE: LIVE or TEST'
         required: true
-        default: 'TEST' # Default is set to TEST for safety
+        default: 'TEST' 
         type: choice
         options:
           - LIVE
@@ -20,17 +19,16 @@ jobs:
   generate_and_publish:
     runs-on: ubuntu-latest
     
-    # Environment variables are crucial for the script
     env:
       SYSTEM_MODE: ${{ github.event.inputs.mode || 'LIVE' }} 
-      PUBLISHER_REPO_OWNER: ${{ github.repository_owner }} # Owner of the knowledge-hub repo
+      PUBLISHER_REPO_OWNER: ${{ github.repository_owner }} 
       PUBLISHER_REPO_NAME: knowledge-hub
       
     steps:
       - name: ⬇️ Checkout Factory Repo
         uses: actions/checkout@v4
         with:
-          # Use PAT to allow cross-repo operations (crucial for setting up the environment path)
+          # استخدام PAT هنا يحافظ على بيانات الاعتماد للدفع اللاحق
           token: ${{ secrets.PUBLISH_PAT }} 
           
       - name: 🏗️ Setup Python
@@ -40,36 +38,28 @@ jobs:
 
       - name: ⚙️ Set Git User for Commit
         run: |
-          # Identity used for the commit in the Factory repo
           git config --global user.email "knowledgehub-bot@users.noreply.github.com"
           git config --global user.name "Knowledge Hub Automation Bot"
 
       - name: 📦 Setup Publisher Structure (Crucial for generator.py path)
-        # Create the relative path where generator.py expects to write files
         run: |
           mkdir -p ../${{ env.PUBLISHER_REPO_NAME }}/content/posts/
           
       - name: 🚀 Run Generator Script
-        # This step runs generator.py which creates .md files and executes 'git commit'
+        # يقوم هذا السكربت بتوليد الملفات وينفذ git commit لها
         run: python content-engine/generator.py
         env:
-          # Pass the mode to the Python script
           SYSTEM_MODE: ${{ env.SYSTEM_MODE }} 
           
       - name: 🛑 Kill Switch Check (Skip Push if in TEST mode)
         if: env.SYSTEM_MODE == 'TEST'
         run: echo "SYSTEM_MODE is TEST. Skipping secure Git Push to Publisher."
         
-      - name: 🧹 Clean Git Cache
-        if: env.SYSTEM_MODE == 'LIVE'
-        run: |
-          # هذه الخطوة تزيل أي ملفات Git تالفة من التشغيل السابق
-          rm -rf .git/objects/pack
-          rm -rf .git/refs/remotes/origin
-
       - name: 📤 Secure Push Generated Content (LIVE Mode Only)
         if: env.SYSTEM_MODE == 'LIVE'
         run: |
           echo "Starting secure push to ${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}"
-          # نستخدم -f و HEAD:main للدفع القسري لتوحيد أساس الفرعين
-          git push -f https://${{ github.actor }}:${{ secrets.PUBLISH_PAT }}@github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
+          
+          # توجيه الدفع إلى المستودع الهدف باستخدام بروتوكول SSH/Git
+          # نعتمد على بيانات الاعتماد المحفوظة من خطوة Checkout
+          git push -f https://github.com/${{ env.PUBLISHER_REPO_OWNER }}/${{ env.PUBLISHER_REPO_NAME }}.git HEAD:main
